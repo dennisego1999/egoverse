@@ -86,13 +86,22 @@ export default class Player extends BaseCharacter implements IPlayer {
 		}
 
 		// Dispatch play audio event
-		EventService.dispatch(CustomEventKey.PLAY_AUDIO, '/assets/audio/fart.mp3');
+		const randomFart: 1 | 2 = (Math.floor(Math.random() * 2) + 1) as 1 | 2;
+
+		// Play random fart sound
+		if (randomFart === 1) {
+			EventService.dispatch(CustomEventKey.PLAY_AUDIO, '/assets/audio/fart.mp3');
+		}
+
+		if (randomFart === 2) {
+			EventService.dispatch(CustomEventKey.PLAY_AUDIO, '/assets/audio/big-fart.mp3');
+		}
 
 		// Make active player particle fart system alive for 1 second
 		this.particleSystem.isAlive = true;
 
 		// Wait for set duration in seconds
-		await wait(0.1);
+		await wait(0.2);
 
 		// Reset alive state
 		this.particleSystem.isAlive = false;

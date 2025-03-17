@@ -126,24 +126,37 @@ export default class ExperienceManager {
 				);
 			});
 
-			// Sync visitors from active scene state
-			if (data.visitors && data.visitors.length > 0) {
-				data.visitors.forEach((visitor) => {
-					if (this.activeScene?.players[visitor.id]) {
-						// Early return if visitor is already present in scene
-						return;
-					}
+			// Get visitor ids mapping
+			const visitorsIds = new Set(data.visitors.map((visitor) => visitor.id));
 
-					// Add visitor to active scene
-					this.activeScene?.addVisitor(
-						visitor.id,
-						visitor.username,
-						parseInt(visitor.modelId),
-						new Vector3(...visitor.position),
-						new Quaternion(...visitor.quaternion)
-					);
+			// Sync visitors from active scene state
+			if (data.visitors?.length) {
+				// Add new visitors to the scene
+				data.visitors.forEach((visitor) => {
+					if (!this.activeScene?.players[visitor.id]) {
+						this.activeScene?.addVisitor(
+							visitor.id,
+							visitor.username,
+							parseInt(visitor.modelId),
+							new Vector3(...visitor.position),
+							new Quaternion(...visitor.quaternion)
+						);
+					}
 				});
+
+				return;
 			}
+
+			// Remove players not in the visitors list
+			Object.keys(this.activeScene!.players).forEach((socketId) => {
+				if (
+					!visitorsIds.has(socketId) &&
+					this.activeScene!.players[socketId] &&
+					!this.activeScene!.players[socketId].isCurrent
+				) {
+					this.activeScene!.players[socketId].destroy();
+				}
+			});
 		});
 
 		ExperienceSocket.on<ISocketPlayerJoinData>(SocketEvent.PLAYER_JOINED, (data) => {

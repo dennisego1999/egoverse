@@ -50,25 +50,32 @@ export class Scene implements IScene {
 	}
 
 	getState(currentUserId: string): ISceneState {
-		const currentPlayer = this.players.get(currentUserId);
+		const currentPlayer = this.players.get(currentUserId)!;
 		const visitors = Array.from(this.players.values()).filter((p) => p.id !== currentUserId);
 
 		return {
 			sceneKey: this.sceneKey,
-			currentPlayer,
+			currentPlayer: {
+				id: currentPlayer?.id,
+				username: currentPlayer?.username,
+				modelId: currentPlayer?.modelId,
+				position: currentPlayer?.position.toArray(),
+				quaternion: currentPlayer?.quaternion.toArray(),
+				sceneKey: currentPlayer?.sceneKey
+			},
 			npcs: this.npcs.map((npc) => ({
 				username: npc.username,
 				modelId: npc.modelId,
 				dialog: npc.dialog,
 				position: npc.position.toArray(),
-				quaternion: [npc.quaternion.x, npc.quaternion.y, npc.quaternion.z, npc.quaternion.w]
+				quaternion: npc.quaternion.toArray()
 			})),
 			visitors: visitors.map((v) => ({
 				id: v.id,
 				username: v.username,
 				modelId: v.modelId,
 				position: v.position.toArray(),
-				quaternion: [v.quaternion.x, v.quaternion.y, v.quaternion.z, v.quaternion.w]
+				quaternion: v.quaternion.toArray()
 			}))
 		};
 	}

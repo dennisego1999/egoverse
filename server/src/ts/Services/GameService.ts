@@ -225,15 +225,6 @@ export class GameService {
 			}))
 		});
 
-		// Broadcasts the new player to others in the scene.
-		this.io.to(sceneKey).emit(SocketEvent.PLAYER_JOINED, {
-			id: player.id,
-			username: player.username,
-			modelId: player.modelId,
-			spawnPosition: player.position.toArray(),
-			spawnRotation: player.quaternion.toArray()
-		});
-
 		// Sets up event listeners for player interactions.
 		socket.on(SocketEvent.JOIN_SCENE, (data) => this.handleJoinScene(socket, player, data));
 		socket.on(SocketEvent.CLIENT_UPDATE_PLAYER, (data) => this.handlePlayerUpdate(socket, player, data));
@@ -256,12 +247,6 @@ export class GameService {
 			return;
 		}
 
-		// Avoid redundant scene switching by checking if the player is already in the target scene.
-		if (player.sceneKey === newSceneKey) {
-			socket.emit(SocketEvent.SCENE_STATE, this.scenes.get(player.sceneKey)!.getState(socket.id));
-			return;
-		}
-
 		// Store the old scene key before switching.
 		const oldSceneKey = player.sceneKey as SceneKey;
 
@@ -272,11 +257,14 @@ export class GameService {
 			// Remove player from the old scene.
 			oldScene.removePlayer(socket.id);
 
+			// Send the updated scene state to all players in the new scene, not just the newly joined player
+			[...oldScene.players.values()].forEach((player) => {
+				// Send state to each player with their own `socket.id`
+				this.io.to(player.id).emit(SocketEvent.SCENE_STATE, oldScene.getState(player.id));
+			});
+
 			// Remove the socket from the old scene's room.
 			socket.leave(oldSceneKey);
-
-			// Notify others in the old scene.
-			this.io.to(oldSceneKey).emit(SocketEvent.PLAYER_LEFT, { id: socket.id });
 		}
 
 		// Retrieve the new scene from the scenes map.
@@ -294,20 +282,10 @@ export class GameService {
 		// Update the player's scene reference.
 		player.sceneKey = newSceneKey;
 
-		// Notify all players in the new scene that a new player has joined.
-		this.io.to(newSceneKey).emit(SocketEvent.PLAYER_JOINED, {
-			id: player.id,
-			username: player.username,
-			modelId: player.modelId,
-			spawnPosition: player.position.toArray(),
-			spawnRotation: player.quaternion.toArray(),
-			sceneKey: newSceneKey
-		});
-
 		// Send the updated scene state to all players in the new scene, not just the newly joined player
-		[...newScene.players.values()].forEach((otherPlayer) => {
+		[...newScene.players.values()].forEach((player) => {
 			// Send state to each player with their own `socket.id`
-			this.io.to(otherPlayer.id).emit(SocketEvent.SCENE_STATE, newScene.getState(otherPlayer.id));
+			this.io.to(player.id).emit(SocketEvent.SCENE_STATE, newScene.getState(player.id));
 		});
 	}
 
@@ -382,8 +360,11 @@ export class GameService {
 
 		// If the scene exists, remove the player from it and notify other players
 		if (scene) {
-			scene.removePlayer(socket.id); // Remove the player from the scene
-			this.io.to(player.sceneKey).emit(SocketEvent.PLAYER_LEFT, { id: socket.id }); // Notify others in the same scene
+			// Remove the player from the scene
+			scene.removePlayer(socket.id);
+
+			// Notify others in the same scene
+			this.io.to(player.sceneKey).emit(SocketEvent.SCENE_STATE, scene.getState(socket.id));
 		}
 	}
 

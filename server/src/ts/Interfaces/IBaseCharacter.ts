@@ -5,6 +5,4 @@ export interface IBaseCharacter {
 	modelId: number;
 	position: Vector3;
 	quaternion: Quaternion;
-
-	updatePositionAndRotation(position: Vector3, quaternion: Quaternion): void;
 }

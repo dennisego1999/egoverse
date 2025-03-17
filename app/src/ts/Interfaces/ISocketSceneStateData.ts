@@ -7,8 +7,8 @@ export interface ISocketSceneStateData {
 		id: string;
 		username: string;
 		modelId: string;
-		position: Vector3;
-		quaternion: Quaternion;
+		position: Array<number>;
+		quaternion: Array<number>;
 	};
 	npcs: Array<{
 		username: string;

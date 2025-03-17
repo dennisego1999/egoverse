@@ -15,7 +15,6 @@ import { IExtendedObject3D } from '../Interfaces/IExtendedObject3D.ts';
 import { IModelCacheEntry } from '../Interfaces/IModelCacheEntry.ts';
 import { ISocketMessageData } from '../Interfaces/ISocketMessageData.ts';
 import { ISocketSceneStateData } from '../Interfaces/ISocketSceneStateData.ts';
-import { ISocketPlayerJoinData } from '../Interfaces/ISocketPlayerJoinData.ts';
 import { ISocketTriggerEmoteData } from '../Interfaces/ISocketTriggerEmoteData.ts';
 import { ISocketClientUpdatePlayerData } from '../Interfaces/ISocketClientUpdatePlayerData.ts';
 import { Clock, DefaultLoadingManager, LoadingManager, Quaternion, Raycaster, Vector2, Vector3 } from 'three';
@@ -111,27 +110,34 @@ export default class ExperienceManager {
 		ExperienceSocket.on<ISocketSceneStateData>(SocketEvent.SCENE_STATE, (data) => {
 			console.log('Scene state', data);
 
+			// Add current player
+			if (!this.activeScene?.players[data.currentPlayer.id]) {
+				this.activeScene?.addCurrentPlayer(
+					data.currentPlayer.username,
+					parseInt(data.currentPlayer.modelId),
+					new Vector3(...data.currentPlayer.position),
+					new Quaternion(...data.currentPlayer.quaternion)
+				);
+			}
+
 			// Add npcs if they're not present in active scene
 			data.npcs.forEach((npc) => {
-				if (this.activeScene?.npcs.find((n) => n.username === npc.username)) {
-					return;
+				if (!this.activeScene?.npcs.find((n) => n.username === npc.username)) {
+					this.activeScene?.addNpc(
+						npc.username,
+						npc.modelId,
+						npc.dialog,
+						new Vector3(...npc.position),
+						new Quaternion(...npc.quaternion)
+					);
 				}
-
-				this.activeScene?.addNpc(
-					npc.username,
-					npc.modelId,
-					npc.dialog,
-					new Vector3(...npc.position),
-					new Quaternion(...npc.quaternion)
-				);
 			});
 
 			// Get visitor ids mapping
 			const visitorsIds = new Set(data.visitors.map((visitor) => visitor.id));
 
-			// Sync visitors from active scene state
-			if (data.visitors?.length) {
-				// Add new visitors to the scene
+			// Add new visitors to the scene
+			if (data.visitors.length) {
 				data.visitors.forEach((visitor) => {
 					if (!this.activeScene?.players[visitor.id]) {
 						this.activeScene?.addVisitor(
@@ -143,77 +149,16 @@ export default class ExperienceManager {
 						);
 					}
 				});
-
-				return;
 			}
 
-			// Remove players not in the visitors list
+			// Remove visitors that should no longer be in scene
 			Object.keys(this.activeScene!.players).forEach((socketId) => {
 				if (
 					!visitorsIds.has(socketId) &&
 					this.activeScene!.players[socketId] &&
 					!this.activeScene!.players[socketId].isCurrent
 				) {
-					this.activeScene!.players[socketId].destroy();
-				}
-			});
-		});
-
-		ExperienceSocket.on<ISocketPlayerJoinData>(SocketEvent.PLAYER_JOINED, (data) => {
-			console.log('Player joined', data);
-
-			if (data.id === this.userId) {
-				// Add current player
-				this.activeScene?.addCurrentPlayer(
-					data.username,
-					parseInt(data.modelId),
-					new Vector3(...data.spawnPosition),
-					new Quaternion(...data.spawnRotation)
-				);
-
-				return;
-			}
-
-			// Add the visitor
-			this.activeScene?.addVisitor(
-				data.id,
-				data.username,
-				parseInt(data.modelId),
-				new Vector3(...data.spawnPosition),
-				new Quaternion(...data.spawnRotation)
-			);
-		});
-
-		ExperienceSocket.on<ISocketPlayerJoinData>(SocketEvent.PLAYER_LEFT, (data) => {
-			console.log('Player left', data);
-
-			// Get player
-			const player = data.id === this.userId ? this.activeScene?.currentPlayer : this.activeScene?.players[data.id];
-
-			if (!player || !player.model) {
-				return;
-			}
-
-			// Make sure all tweens are killed first
-			gsap.killTweensOf(player.model.scale);
-
-			// Remove current player from previous active scene
-			gsap.to(player.model.scale, {
-				x: 0,
-				y: 0,
-				z: 0,
-				duration: 0.4,
-				ease: 'back.inOut',
-				onComplete: () => {
-					if (data.id === this.userId) {
-						// Remove active player from previous scene
-						this.activeScene?.removeCurrentPlayer();
-
-						return;
-					}
-
-					// Remove active player from previous scene
-					this.activeScene?.removeVisitor(data.id);
+					this.activeScene?.removeVisitor(socketId);
 				}
 			});
 		});

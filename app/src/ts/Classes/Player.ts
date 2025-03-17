@@ -1,4 +1,4 @@
-import { wait } from '../Helpers';
+import { wait, generateRandomNumber } from '../Helpers';
 import { IPlayer } from '../Interfaces/IPlayer.ts';
 import { ModelPrefix } from '../Enums/ModelPrefix.ts';
 import { EventService } from '../Services/EventService.ts';
@@ -93,14 +93,23 @@ export default class Player extends BaseCharacter implements IPlayer {
 			return;
 		}
 
-		// Dispatch play audio event
-		EventService.dispatch(CustomEventKey.PLAY_AUDIO, '/assets/audio/fart.mp3');
+		// Generate random number between 1 and 2
+		const randomNumber = generateRandomNumber(1, 2);
 
-		// Make active player particle fart system alive for 1 second
+		// Play random fart sound based on randomly generated number
+		if (randomNumber === 1) {
+			EventService.dispatch(CustomEventKey.PLAY_AUDIO, '/assets/audio/fart.mp3');
+		}
+
+		if (randomNumber === 2) {
+			EventService.dispatch(CustomEventKey.PLAY_AUDIO, '/assets/audio/big-fart.mp3');
+		}
+
+		// Make active player particle fart system alive
 		this.particleSystem.isAlive = true;
 
 		// Wait for set duration in seconds
-		await wait(0.1);
+		await wait(0.2);
 
 		// Reset alive state
 		this.particleSystem.isAlive = false;

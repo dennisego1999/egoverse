@@ -250,8 +250,8 @@ export class GameService {
 		// Store the old scene key before switching.
 		const oldSceneKey = player.sceneKey as SceneKey;
 
-		// Remove the player from the old scene if it exists.
-		if (this.scenes.has(oldSceneKey)) {
+		// Remove the player from the old scene if the player navigates to new scene.
+		if (newSceneKey !== player.sceneKey) {
 			const oldScene = this.scenes.get(oldSceneKey)!;
 
 			// Remove player from the old scene.
@@ -365,8 +365,11 @@ export class GameService {
 			// Remove the player from the scene
 			scene.removePlayer(socket.id);
 
-			// Notify others in the same scene
-			this.io.to(player.sceneKey).emit(SocketEvent.SCENE_STATE, scene.getState(socket.id));
+			// Notify others
+			[...scene.players.values()].forEach((player) => {
+				// Send state to each player with their own `socket.id`
+				this.io.to(player.id).emit(SocketEvent.SCENE_STATE, scene.getState(player.id));
+			});
 		}
 	}
 

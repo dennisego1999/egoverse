@@ -24,7 +24,6 @@ import ExperienceManager from './ExperienceManager.ts';
 import PlayerControls from './PlayerControls.ts';
 import NpcControls from './NpcControls.ts';
 import ExperienceCamera from './ExperienceCamera.ts';
-import Player from './Player.ts';
 import Text3D from './Text3D.ts';
 
 export default class BaseCharacter implements IBaseCharacter {
@@ -172,7 +171,7 @@ export default class BaseCharacter implements IBaseCharacter {
 	}
 
 	async addUsernameLabel() {
-		if (this instanceof Player && this.isCurrent) {
+		if ('isCurrent' in this && this.isCurrent) {
 			return;
 		}
 
@@ -244,7 +243,8 @@ export default class BaseCharacter implements IBaseCharacter {
 		// Add custom data
 		if (this.modelPrefix === ModelPrefix.PLAYER) this.hitbox.userData['isPlayer'] = true;
 		if (this.modelPrefix === ModelPrefix.NPC) this.hitbox.userData['isNpc'] = true;
-		if (this instanceof Player) {
+
+		if ('socketId' in this) {
 			this.hitbox.userData['socketId'] = this.socketId;
 		}
 

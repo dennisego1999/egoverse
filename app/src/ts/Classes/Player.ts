@@ -1,16 +1,18 @@
-import { wait, generateRandomNumber } from '../Helpers';
 import { IPlayer } from '../Interfaces/IPlayer.ts';
 import { ModelPrefix } from '../Enums/ModelPrefix.ts';
 import { EventService } from '../Services/EventService.ts';
 import { CustomEventKey } from '../Enums/CustomEventKey.ts';
+import { IParticleEmittable } from '../Interfaces/IParticleEmittable.ts';
+import { ISocketIdentifiable } from '../Interfaces/ISocketIdentifiable.ts';
 import { Vector3, Quaternion } from 'three';
+import { wait, generateRandomNumber } from '../Helpers';
 import ExperienceCamera from './ExperienceCamera.ts';
 import ExperienceScene from './ExperienceScene.ts';
 import BaseCharacter from './BaseCharacter.ts';
 import PlayerControls from './PlayerControls.ts';
 import ParticleSystem from './ParticleSystem.ts';
 
-export default class Player extends BaseCharacter implements IPlayer {
+export default class Player extends BaseCharacter implements IPlayer, ISocketIdentifiable, IParticleEmittable {
 	public socketId: string;
 	public isCurrent: boolean = false;
 	public particleSystem: ParticleSystem | null = null;

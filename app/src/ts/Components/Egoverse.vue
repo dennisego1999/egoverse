@@ -285,9 +285,9 @@ onBeforeUnmount(() => {
 
 <template>
 	<div class="fixed inset-0 bg-white">
-		<div class="absolute top-5 right-5 z-10 flex items-center justify-center gap-2">
-			<Loader v-if="!isReady" />
+		<Loader v-if="!isReady" />
 
+		<div class="absolute top-5 right-5 z-10 flex items-center justify-center gap-2">
 			<PrimaryButton
 				:ref="(el) => (areaButtons[SceneKey.FIRST_AREA] = (el as ComponentPublicInstance).$el as HTMLElement)"
 				@click="transitionToScene(SceneKey.FIRST_AREA)"

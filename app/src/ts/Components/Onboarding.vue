@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useAvatarStore } from '../Stores/AvatarStore.ts';
 import AvatarOption from './AvatarOption.vue';
 import PrimaryButton from './PrimaryButton.vue';
-import InputField from './TextInputField.vue';
+import TextInputField from './TextInputField.vue';
 
 // Define emits
 const emit = defineEmits<{
@@ -52,7 +52,7 @@ function handleAvatarSelection(id: number) {
 				</span>
 
 				<form class="flex w-full flex-col items-start justify-center gap-4" @submit.prevent="emit('next')">
-					<InputField v-model="avatarStore.username" type="text" placeholder="Type username here" class="" />
+					<TextInputField v-model="avatarStore.username" type="text" placeholder="Type username here" class="" />
 
 					<PrimaryButton type="submit"> Confirm </PrimaryButton>
 				</form>

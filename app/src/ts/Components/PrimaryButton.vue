@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue';
-import InputField from './TextInputField.vue';
 
 // Define emits
 const emit = defineEmits<{
@@ -42,7 +41,7 @@ defineProps<{
 		]"
 		@click="emit('click')"
 	>
-		<InputField v-if="submit" type="text" class="hidden" />
+		<input v-if="submit" type="text" class="hidden" />
 
 		<slot />
 	</button>

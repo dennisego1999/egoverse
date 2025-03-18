@@ -17,7 +17,7 @@ import { ISocketMessageData } from '../Interfaces/ISocketMessageData.ts';
 import { ISocketSceneStateData } from '../Interfaces/ISocketSceneStateData.ts';
 import { ISocketTriggerEmoteData } from '../Interfaces/ISocketTriggerEmoteData.ts';
 import { ISocketClientUpdatePlayerData } from '../Interfaces/ISocketClientUpdatePlayerData.ts';
-import { Clock, DefaultLoadingManager, LoadingManager, Quaternion, Raycaster, Vector2, Vector3 } from 'three';
+import { Clock, DefaultLoadingManager, LoadingManager, Mesh, Quaternion, Raycaster, Vector2, Vector3 } from 'three';
 import ExperienceRenderer from './ExperienceRenderer.ts';
 import Player from './Player.ts';
 import ExperienceScene from './ExperienceScene.ts';
@@ -335,30 +335,21 @@ export default class ExperienceManager {
 		this.raycaster.setFromCamera(this.pointer, this.activeScene.camera);
 
 		// Filter players and NPCs beforehand
-		const intersectTargets = [
-			...Object.values(this.activeScene.players).map((player) => player.model),
-			...this.activeScene.npcs.map((npc) => npc.model)
+		const intersectTargets: Array<Mesh> = [
+			...Object.values(this.activeScene.players)
+				.filter((player) => !player.isCurrent)
+				.map((player) => player.hitbox)
+				.filter((hb): hb is Mesh => hb !== null),
+			...this.activeScene.npcs.map((npc) => npc.hitbox).filter((hb): hb is Mesh => hb !== null)
 		];
 
 		// Calculate objects intersecting the picking ray
 		const intersects = this.raycaster.intersectObjects(intersectTargets, true);
 
 		// Find the first intersected object that belongs to a player
-		let characterIntersect: IExtendedObject3D | null = null;
-		for (const intersect of intersects) {
-			let obj: IExtendedObject3D = intersect.object;
-
-			// Traverse up to find the player or NPC root
-			while (obj) {
-				if (obj.isPlayer || obj.isNpc) {
-					characterIntersect = obj; // Assign the actual player/NPC object
-					break; // Stop traversing since we found the right object
-				}
-				obj = obj.parent as IExtendedObject3D;
-			}
-
-			if (characterIntersect) break; // Stop searching once we find one
-		}
+		const characterIntersect = intersects.find(
+			(intersect) => intersect.object.userData['isPlayer'] || intersect.object.userData['isNpc']
+		);
 
 		if (!characterIntersect || !this.activeScene) {
 			// Remove class
@@ -380,7 +371,7 @@ export default class ExperienceManager {
 		let hoveredPlayerSocketId: string | null = null;
 
 		for (const [socketId, player] of Object.entries(players)) {
-			if (player.socketId === characterIntersect.userData['socketId']) {
+			if (player.socketId === characterIntersect.object.userData['socketId']) {
 				if (!player.isCurrent) {
 					this.hoveredPlayer = player;
 					hoveredPlayerSocketId = socketId;
@@ -391,7 +382,7 @@ export default class ExperienceManager {
 
 		if (!this.hoveredPlayer) {
 			for (const npc of npcs) {
-				if (npc.username === characterIntersect.name) {
+				if (npc.username === characterIntersect.object.name) {
 					this.hoveredNpc = npc;
 					break; // Found an NPC, exit early
 				}
@@ -425,9 +416,6 @@ export default class ExperienceManager {
 				clonedModel.quaternion.copy(spawnRotation);
 				clonedModel.scale.copy(spawnScale);
 
-				if (modelPrefix === ModelPrefix.PLAYER) clonedModel.isPlayer = true;
-				if (modelPrefix === ModelPrefix.NPC) clonedModel.isNpc = true;
-
 				// Ensure matrix world is updated
 				clonedModel.updateMatrixWorld(true);
 
@@ -443,8 +431,6 @@ export default class ExperienceManager {
 				const model: IExtendedObject3D = gltf.scene;
 
 				// Do adjustments
-				if (modelPrefix === ModelPrefix.PLAYER) model.isPlayer = true;
-				if (modelPrefix === ModelPrefix.NPC) model.isNpc = true;
 				model.position.copy(spawnPosition);
 				model.quaternion.copy(spawnRotation);
 				model.scale.copy(spawnScale);

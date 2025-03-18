@@ -7,7 +7,18 @@ import { IExperienceScene } from '../Interfaces/IExperienceScene.ts';
 import { PhysicsCollisionGroup } from '../Enums/PhysicsCollisionGroup.ts';
 import { copyQuaternionToCannon } from '../Helpers';
 import { CharacterFacingDirection } from '../Enums/CharacterFacingDirection.ts';
-import { AnimationAction, AnimationClip, AnimationMixer, Box3, Mesh, Object3D, Quaternion, Vector3 } from 'three';
+import {
+	AnimationAction,
+	AnimationClip,
+	AnimationMixer,
+	Box3,
+	BoxGeometry,
+	Mesh,
+	MeshBasicMaterial,
+	Object3D,
+	Quaternion,
+	Vector3
+} from 'three';
 import ExperienceScene from './ExperienceScene.ts';
 import ExperienceManager from './ExperienceManager.ts';
 import PlayerControls from './PlayerControls.ts';
@@ -29,7 +40,7 @@ export default class BaseCharacter implements IBaseCharacter {
 	public spawnRotation: Quaternion;
 	public username: string;
 	public usernameLabel: Object3D | null = null;
-	public modelHeight: number | null = null;
+	public hitbox: Mesh | null = null;
 	public physicsBody: Body | null = null;
 	public renderAction: ((...args: any[]) => void) | null = null;
 	private readonly physicsCharacterSphereRadius: number;
@@ -56,7 +67,20 @@ export default class BaseCharacter implements IBaseCharacter {
 		this.physicsCharacterSphereRadius = 0.9;
 	}
 
-	public get facingDirection(): CharacterFacingDirection {
+	get modelDimensions() {
+		if (!this.model) {
+			return { width: 0, height: 0, depth: 0 };
+		}
+
+		// Calculate dimensions
+		const bbox = new Box3().setFromObject(this.model);
+		const size = new Vector3();
+		bbox.getSize(size);
+
+		return { width: size.x, height: size.y, depth: size.z };
+	}
+
+	get facingDirection(): CharacterFacingDirection {
 		// Create a unit vector pointing along the z-axis (forward direction)
 		const forward = new Vector3(0, 0, 1);
 
@@ -101,9 +125,6 @@ export default class BaseCharacter implements IBaseCharacter {
 			// Set model
 			this.model = model;
 
-			// Update the name attribute
-			this.model.name = this.username;
-
 			// Filter out the T pose animation
 			const filteredAnimations = [
 				...animations.filter((animation: AnimationClip) => animation.name !== AnimationName.TPOSE)
@@ -137,6 +158,9 @@ export default class BaseCharacter implements IBaseCharacter {
 						// Add username label
 						this.addUsernameLabel();
 
+						// Add model hitbox
+						this.addHitBox();
+
 						// Setup physics body of character
 						this.setupPhysicsBody();
 					}
@@ -159,11 +183,8 @@ export default class BaseCharacter implements IBaseCharacter {
 		const bbox = new Box3();
 		bbox.setFromObject(this.model, true);
 
-		// Calculate model height
-		this.modelHeight = bbox.max.y - bbox.min.y;
-
 		// Define target y position
-		const targetPositionY = this.modelHeight + 0.1;
+		const targetPositionY = this.modelDimensions.height + 0.1;
 
 		// Set y position right above model height using offset
 		this.usernameLabel.position.y = targetPositionY;
@@ -204,6 +225,33 @@ export default class BaseCharacter implements IBaseCharacter {
 		);
 	}
 
+	addHitBox() {
+		// Create a hitbox
+		const geometry = new BoxGeometry(
+			this.modelDimensions.width,
+			this.modelDimensions.height,
+			this.modelDimensions.depth
+		);
+		const material = new MeshBasicMaterial({ transparent: true, opacity: 0 });
+		this.hitbox = new Mesh(geometry, material);
+
+		// Position the hitbox so its base aligns with the model's base
+		this.hitbox.position.y = this.model.position.y + this.modelDimensions.height / 2;
+
+		// Update the name attribute
+		this.hitbox.name = this.username;
+
+		// Add custom data
+		if (this.modelPrefix === ModelPrefix.PLAYER) this.hitbox.userData['isPlayer'] = true;
+		if (this.modelPrefix === ModelPrefix.NPC) this.hitbox.userData['isNpc'] = true;
+		if (this instanceof Player) {
+			this.hitbox.userData['socketId'] = this.socketId;
+		}
+
+		// Add hitbox to scene
+		this.experienceScene.scene.add(this.hitbox);
+	}
+
 	setupPhysicsBody() {
 		// Add physics
 		const avatarShape = new Sphere(this.physicsCharacterSphereRadius);
@@ -228,17 +276,22 @@ export default class BaseCharacter implements IBaseCharacter {
 		// Update the mixer
 		this.mixer.update(delta);
 
-		if (this.physicsBody && this.model) {
+		if (this.physicsBody && this.model && this.hitbox) {
 			// Make sure velocity is always 0 to prevent issues
 			this.physicsBody.velocity.x = 0;
 			this.physicsBody.velocity.y = 0;
 			this.physicsBody.velocity.z = 0;
 
-			// Sync the rotation and position of the character model with physics
+			// Sync the rotation and position of the character model and hitbox with physics
 			this.physicsBody.quaternion.copy(copyQuaternionToCannon(this.model.quaternion));
-			this.model.position.x = this.physicsBody.position.x;
 			this.physicsBody.position.y = this.physicsCharacterSphereRadius;
+
+			this.model.position.x = this.physicsBody.position.x;
 			this.model.position.z = this.physicsBody.position.z;
+
+			this.hitbox.position.x = this.physicsBody.position.x;
+			this.hitbox.position.z = this.physicsBody.position.z;
+			this.hitbox.quaternion.copy(this.model.quaternion);
 		}
 
 		// Sync position of avatar label with character position

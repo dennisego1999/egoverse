@@ -17,12 +17,15 @@ import KeyboardIcon from './Icons/KeyboardIcon.vue';
 import KeybindingsModal from './KeybindingsModal.vue';
 import ChatList from './ChatList.vue';
 import ChatModal from './ChatModal.vue';
+import VolumeIcon from './Icons/VolumeIcon.vue';
 
 // Avatar store
 const { username, modelId } = useAvatarStore();
 
 // Set variables
 const audio: Ref<HTMLAudioElement | null> = ref(null);
+const bgAudio: Ref<HTMLAudioElement | null> = ref(null);
+const isBgAudioMuted: Ref<boolean> = ref(true);
 const chats: Ref<Record<string, Array<{ message: string; isCurrentPlayer: boolean }>>> = ref({});
 const selectedChatUserId: Ref<string | null> = ref(null);
 const isChatModalVisible: Ref<boolean> = ref(false);
@@ -190,6 +193,28 @@ function onKeyUp(event: KeyboardEvent) {
 	keysPressed[event.code as KeyboardKey] = false;
 }
 
+function toggleBgMusic() {
+	if (!bgAudio.value) {
+		return;
+	}
+
+	// Toggle muted state
+	bgAudio.value.muted = !bgAudio.value.muted;
+
+	// Set ref for reactivity
+	isBgAudioMuted.value = bgAudio.value.muted;
+
+	// Play audio
+	if (bgAudio.value.paused) {
+		bgAudio.value.play();
+	}
+
+	// Pause audio
+	if (bgAudio.value.muted) {
+		bgAudio.value.pause();
+	}
+}
+
 // Watch
 watch(ExperienceManager.instance.selectedPlayer, (value) => {
 	if (value && ExperienceManager.instance.activeScene) {
@@ -303,15 +328,20 @@ onBeforeUnmount(() => {
 			@close="isKeyBindingsModalVisible = false"
 		/>
 
-		<div
-			class="absolute right-2 bottom-2 z-10 cursor-pointer rounded-md bg-cyan-400 p-2 shadow-xl"
-			@click="isKeyBindingsModalVisible = true"
-		>
-			<KeyboardIcon class="h-8 w-8 text-white" />
+		<div class="absolute right-2 bottom-2 z-10 flex items-center justify-between gap-2">
+			<div class="cursor-pointer rounded-md bg-cyan-400 p-2 shadow-xl" @click="toggleBgMusic">
+				<VolumeIcon :is-muted="isBgAudioMuted" class="h-8 w-8 text-white" />
+			</div>
+
+			<div class="cursor-pointer rounded-md bg-cyan-400 p-2 shadow-xl" @click="isKeyBindingsModalVisible = true">
+				<KeyboardIcon class="h-8 w-8 text-white" />
+			</div>
 		</div>
 
 		<canvas ref="canvas" class="h-full w-full" />
 
 		<audio ref="audio" muted preload="auto" />
+
+		<audio ref="bgAudio" muted preload="auto" loop src="/assets/audio/bg.mp3"></audio>
 	</div>
 </template>

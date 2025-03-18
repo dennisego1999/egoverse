@@ -57,3 +57,7 @@ export function isMatching(item: Object3D, binding: { name: string; matching: st
 			return item.name === binding.name || (parentName && parentName === binding.name);
 	}
 }
+
+export function generateRandomNumber(min: number, max: number): number {
+	return Math.floor(Math.random() * (max - min + 1)) + min;
+}

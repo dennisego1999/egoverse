@@ -248,6 +248,9 @@ export default class BaseCharacter implements IBaseCharacter {
 			this.hitbox.userData['socketId'] = this.socketId;
 		}
 
+		// Set renderOrder to ensure it renders after everything else (or last in the stack)
+		this.hitbox.renderOrder = 1;
+
 		// Add hitbox to scene
 		this.experienceScene.scene.add(this.hitbox);
 	}

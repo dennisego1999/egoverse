@@ -258,10 +258,12 @@ export class GameService {
 			oldScene.removePlayer(socket.id);
 
 			// Send the updated scene state to all players in the new scene, not just the newly joined player
-			[...oldScene.players.values()].forEach((player) => {
-				// Send state to each player with their own `socket.id`
-				this.io.to(player.id).emit(SocketEvent.SCENE_STATE, oldScene.getState(player.id));
-			});
+			[...oldScene.players.values()]
+				.filter((player) => player.id !== socket.id)
+				.forEach((player) => {
+					// Send state to each player with their own `socket.id`
+					this.io.to(player.id).emit(SocketEvent.SCENE_STATE, oldScene.getState(player.id));
+				});
 
 			// Remove the socket from the old scene's room.
 			socket.leave(oldSceneKey);

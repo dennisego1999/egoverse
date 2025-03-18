@@ -111,7 +111,7 @@ export default class ExperienceManager {
 			console.log('Scene state', data);
 
 			// Add current player
-			if (!this.activeScene?.players[data.currentPlayer.id]) {
+			if (!this.activeScene?.players[data.currentPlayer.id] && data.currentPlayer) {
 				this.activeScene?.addCurrentPlayer(
 					data.currentPlayer.username,
 					parseInt(data.currentPlayer.modelId),

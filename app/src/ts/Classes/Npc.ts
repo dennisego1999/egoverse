@@ -51,7 +51,7 @@ export default class Npc extends BaseCharacter implements INpc {
 		const textSize = 0.05;
 		const textColor = 0x000000;
 		const fontUrl = '/assets/fonts/rubik.json';
-		const targetPositionY = this.modelHeight ? this.modelHeight + 0.4 : 4;
+		const targetPositionY = this.modelDimensions.height ? this.modelDimensions.height + 0.4 : 4;
 
 		// Generate messages
 		for (const message of this.dialog.messages) {

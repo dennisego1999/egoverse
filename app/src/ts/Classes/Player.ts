@@ -37,8 +37,9 @@ export default class Player extends BaseCharacter implements IPlayer {
 			this.controls = new PlayerControls(this);
 
 			// Store socket id in model userdata
-			if (this.model) {
-				this.model.userData['socketId'] = this.socketId;
+			if (this.hitbox) {
+				this.hitbox.userData['socketId'] = this.socketId;
+				console.log(this.hitbox);
 			}
 
 			if (this.isCurrent) {
